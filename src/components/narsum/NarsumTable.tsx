@@ -4,7 +4,15 @@ import type { NarsumItem } from "../../services/narsumService";
 import { formatRange } from "../../utils/formatDate";
 import { ModeBadge } from "../common/Badge";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 50, 100] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number] | "all";
+
+const PAGE_SIZE_LABELS: Record<string, string> = {
+  "10": "10 / halaman",
+  "50": "50 / halaman",
+  "100": "100 / halaman",
+  all: "Semua",
+};
 
 interface NarsumTableProps {
   items: NarsumItem[];
@@ -24,8 +32,9 @@ export function NarsumTable({
   hasFilter,
 }: NarsumTableProps) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(10);
 
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const totalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(items.length / pageSize));
 
   useEffect(() => {
     setPage(1);
@@ -36,12 +45,14 @@ export function NarsumTable({
   }, [page, totalPages]);
 
   const pageItems = useMemo(
-    () => items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [items, page],
+    () =>
+      pageSize === "all" ? items : items.slice((page - 1) * pageSize, page * pageSize),
+    [items, page, pageSize],
   );
 
-  const startNumber = items.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const endNumber = Math.min(page * PAGE_SIZE, items.length);
+  const startNumber =
+    items.length === 0 ? 0 : pageSize === "all" ? 1 : (page - 1) * pageSize + 1;
+  const endNumber = pageSize === "all" ? items.length : Math.min(page * pageSize, items.length);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -166,29 +177,63 @@ export function NarsumTable({
         </table>
       </div>
 
-      <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row">
-        <p className="text-[12.5px] text-slate-500">
-          Menampilkan <span className="font-semibold text-slate-700">{startNumber}</span>–
-          <span className="font-semibold text-slate-700">{endNumber}</span> dari{" "}
-          <span className="font-semibold text-slate-700">{items.length}</span> kegiatan
-        </p>
+      <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p className="text-[12.5px] text-slate-500">
+            Menampilkan <span className="font-semibold text-slate-700">{startNumber}</span>–
+            <span className="font-semibold text-slate-700">{endNumber}</span> dari{" "}
+            <span className="font-semibold text-slate-700">{items.length}</span> kegiatan
+          </p>
 
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            disabled={page === 1}
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Halaman sebelumnya"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
+          <span className="hidden text-slate-300 sm:inline">|</span>
 
-          {Array.from({ length: Math.min(5, totalPages) }).map((_, index) => {
-            const windowSize = Math.min(5, totalPages);
-            const first = Math.min(Math.max(1, page - 2), totalPages - windowSize + 1);
-            const pageNumber = first + index;
-            return (
+          <label className="flex items-center gap-1.5">
+            <span className="text-[12px] text-slate-500">Tampilkan</span>
+            <select
+              value={String(pageSize)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setPage(1);
+                setPageSize(value === "all" ? "all" : (Number(value) as PageSize));
+              }}
+              aria-label="Jumlah baris per halaman"
+              className="h-8 cursor-pointer rounded-lg border border-slate-200 bg-white pl-2 pr-7 text-[12px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              style={{
+                appearance: "none",
+                backgroundImage:
+                  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 6px center",
+                backgroundSize: "14px",
+              }}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {PAGE_SIZE_LABELS[String(size)]}
+                </option>
+              ))}
+              <option value="all">{PAGE_SIZE_LABELS.all}</option>
+            </select>
+          </label>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page === 1}
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Halaman sebelumnya"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+
+            {Array.from({ length: Math.min(5, totalPages) }).map((_, index) => {
+              const windowSize = Math.min(5, totalPages);
+              const first = Math.min(Math.max(1, page - 2), totalPages - windowSize + 1);
+              const pageNumber = first + index;
+              return (
                 <button
                   key={pageNumber}
                   type="button"
@@ -199,22 +244,28 @@ export function NarsumTable({
                       ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
                       : "border border-slate-200 text-slate-600 hover:bg-slate-50",
                   ].join(" ")}
+                  aria-current={pageNumber === page ? "page" : undefined}
                 >
                   {pageNumber}
                 </button>
               );
             })}
 
-          <button
-            type="button"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-            disabled={page === totalPages}
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Halaman berikutnya"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page === totalPages}
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Halaman berikutnya"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+
+            <span className="ml-1 hidden text-[12px] text-slate-500 sm:inline">
+              Hal. {page}/{totalPages}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
