@@ -60,7 +60,7 @@ export function NarsumTable({
         <table className="w-full min-w-[860px] border-collapse text-left">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/80 text-[11.5px] uppercase tracking-wide text-slate-500">
-              <th className="w-14 px-4 py-3 font-semibold">ID</th>
+              <th className="w-14 px-4 py-3 font-semibold">No</th>
               <th className="px-4 py-3 font-semibold">Narasumber</th>
               <th className="px-4 py-3 font-semibold">Topik</th>
               <th className="px-4 py-3 font-semibold">Tanggal</th>
@@ -126,11 +126,11 @@ export function NarsumTable({
             )}
 
             {!isLoading &&
-              pageItems.map((item) => (
+              pageItems.map((item, index) => (
                 <tr key={item.id} className="group transition-colors hover:bg-indigo-50/40">
                   <td className="px-4 py-3.5 align-top">
-                    <span className="inline-flex min-w-8 justify-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[11.5px] font-bold text-slate-600">
-                      {item.id}
+                    <span className="inline-flex min-w-8 justify-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[11.5px] font-bold text-slate-600 tabular-nums">
+                      {startNumber + index}
                     </span>
                   </td>
                   <td className="max-w-[240px] px-4 py-3.5 align-top">

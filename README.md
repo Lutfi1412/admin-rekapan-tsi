@@ -128,7 +128,8 @@ Kredensial admin tidak disimpan di frontend; login divalidasi oleh API (`ADMIN_U
 
 1. **Login** — username + password, indikator status API, pesan error dari server, sesi
    kedaluwarsa otomatis (401 → kembali ke halaman login).
-2. **Tabel data** — pilihan jumlah baris per halaman **10 / 50 / 100 / Semua**, pagination
+2. **Tabel data** — kolom **No** berisi nomor urut (1..N, berlanjut antar halaman) dan data
+diurutkan kronologis berdasarkan tanggal mulai, pilihan jumlah baris per halaman **10 / 50 / 100 / Semua**, pagination
    (chevron + nomor halaman + indikator `Hal. x/y`), pencarian (nama/instansi/topik/lokasi/tanggal),
    filter mode pelaksanaan, badge mode, skeleton loading, dan empty state.
 3. **Form input banyak sekaligus** — isi satu kegiatan → **Tambah ke daftar** → muncul pertanyaan

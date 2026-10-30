@@ -14,6 +14,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useNarsum } from "../hooks/useNarsum";
 import type { NarsumItem } from "../services/narsumService";
 import { MODE_OPTIONS } from "../utils/validation";
+import { toIsoDate } from "../utils/formatDate";
 
 const MODE_FILTERS = [
   { value: "all", label: "Semua mode" },
@@ -35,7 +36,7 @@ export function Dashboard() {
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    return items.filter((item) => {
+    const matched = items.filter((item) => {
       const matchesMode =
         modeFilter === "all" || item["Mode Pelaksanaan"].toLowerCase() === modeFilter;
       if (!matchesMode) return false;
@@ -44,6 +45,14 @@ export function Dashboard() {
         .join(" ")
         .toLowerCase()
         .includes(keyword);
+    });
+
+    // Urutkan kronologis (tanggal mulai, lalu id) supaya nomor urut rapi.
+    return matched.sort((a, b) => {
+      const dateA = toIsoDate(a["Tanggal Mulai"]);
+      const dateB = toIsoDate(b["Tanggal Mulai"]);
+      if (dateA !== dateB) return dateA < dateB ? -1 : 1;
+      return a.id - b.id;
     });
   }, [items, search, modeFilter]);
 
