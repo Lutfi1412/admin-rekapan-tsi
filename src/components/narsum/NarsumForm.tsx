@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarPlus, CheckCircle2, ClipboardList, Plus, Send, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarPlus,
+  CalendarRange,
+  CheckCircle2,
+  ClipboardList,
+  Plus,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "../../services/api";
 import type { BulkCreateResult, BulkError, NarsumItem, NarsumPayload } from "../../services/narsumService";
@@ -23,6 +32,8 @@ interface DraftEntry {
   key: string;
   payload: NarsumPayload;
 }
+
+type DurationMode = "single" | "multi";
 
 interface NarsumFormProps {
   open: boolean;
@@ -52,13 +63,17 @@ export function NarsumForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [askNext, setAskNext] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  /** "single" = kegiatan sehari (1 kolom tanggal), "multi" = lebih dari sehari (2 kolom). */
+  const [duration, setDuration] = useState<DurationMode>("single");
   const nameRef = useRef<HTMLInputElement>(null);
 
   const isEditing = Boolean(editing);
 
   useEffect(() => {
     if (!open) return;
-    setValues(editing ? fromItem(editing) : EMPTY_FORM);
+    const initial = editing ? fromItem(editing) : EMPTY_FORM;
+    setValues(initial);
+    setDuration(editing && initial.selesai !== initial.mulai ? "multi" : "single");
     setErrors({});
     setDrafts([]);
     setServerErrors([]);
@@ -77,21 +92,30 @@ export function NarsumForm({
     setFormError(null);
   }
 
-  function resetForm(keepContext = true) {
-    setValues((current) =>
-      keepContext
-        ? {
-            ...EMPTY_FORM,
-            instansi: current.instansi,
-            topik: current.topik,
-            lokasi: current.lokasi,
-            mode: current.mode,
-            mulai: current.mulai,
-            selesai: current.selesai,
-          }
-        : EMPTY_FORM,
-    );
+  /** Pilih durasi: sehari (1 tanggal) atau lebih dari sehari (2 tanggal). */
+  function changeDuration(next: DurationMode) {
+    setDuration(next);
+    setErrors((current) => ({ ...current, mulai: undefined, selesai: undefined }));
+    setFormError(null);
+
+    if (next === "single") {
+      setValues((current) => ({ ...current, selesai: current.mulai }));
+    }
+  }
+
+  /** Saat mode sehari, tanggal selesai selalu sama dengan tanggal mulai. */
+  function updateSingleDate(value: string) {
+    setValues((current) => ({ ...current, mulai: value, selesai: value }));
+    setErrors((current) => ({ ...current, mulai: undefined, selesai: undefined }));
+    setFormError(null);
+  }
+
+  /** Kosongkan total seluruh isian form. */
+  function resetForm() {
+    setValues(EMPTY_FORM);
+    setDuration("single");
     setErrors({});
+    setFormError(null);
     nameRef.current?.focus();
   }
 
@@ -105,8 +129,8 @@ export function NarsumForm({
 
     setDrafts((current) => [...current, { key: newKey(), payload: toPayload(values) }]);
     setAskNext(true);
-    resetForm(true);
-    toast.success(`Kegiatan #${drafts.length + 1} masuk daftar`);
+    resetForm();
+    toast.success(`Kegiatan #${drafts.length + 1} masuk daftar, form sudah dikosongkan`);
   }
 
   function removeDraft(key: string) {
@@ -126,7 +150,7 @@ export function NarsumForm({
         toast.warning(`${result.inserted} tersimpan, ${result.failed} gagal`);
         if (result.inserted > 0) {
           setDrafts([]);
-          resetForm(false);
+          resetForm();
         }
         return;
       }
@@ -330,25 +354,75 @@ export function NarsumForm({
             onChange={(event) => updateField("topik", event.target.value)}
           />
 
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-[12.5px] font-semibold text-slate-700">
+              Durasi kegiatan <span className="text-rose-500">*</span>
+            </p>
+            <div
+              role="radiogroup"
+              aria-label="Durasi kegiatan"
+              className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100/80 p-1"
+            >
+              {(
+                [
+                  { value: "single", label: "Sehari", icon: CalendarDays },
+                  { value: "multi", label: "Lebih dari sehari", icon: CalendarRange },
+                ] as const
+              ).map((option) => {
+                const active = duration === option.value;
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => changeDuration(option.value)}
+                    className={[
+                      "flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[12.5px] font-semibold transition",
+                      active
+                        ? "bg-white text-indigo-700 shadow-sm ring-1 ring-indigo-200"
+                        : "text-slate-500 hover:text-slate-700",
+                    ].join(" ")}
+                  >
+                    <Icon className="size-4" />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {duration === "single" ? (
             <Input
-              label="Tanggal mulai"
+              label="Tanggal kegiatan"
               required
               type="date"
               value={values.mulai}
               error={errors.mulai}
-              onChange={(event) => updateField("mulai", event.target.value)}
+              onChange={(event) => updateSingleDate(event.target.value)}
             />
-            <Input
-              label="Tanggal selesai"
-              required
-              type="date"
-              min={values.mulai || undefined}
-              value={values.selesai}
-              error={errors.selesai}
-              onChange={(event) => updateField("selesai", event.target.value)}
-            />
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <Input
+                label="Tanggal mulai"
+                required
+                type="date"
+                value={values.mulai}
+                error={errors.mulai}
+                onChange={(event) => updateField("mulai", event.target.value)}
+              />
+              <Input
+                label="Tanggal selesai"
+                required
+                type="date"
+                min={values.mulai || undefined}
+                value={values.selesai}
+                error={errors.selesai}
+                onChange={(event) => updateField("selesai", event.target.value)}
+              />
+            </div>
+          )}
 
           <Textarea
             label="Lokasi"
@@ -443,8 +517,8 @@ export function NarsumForm({
               Tips input cepat
             </p>
             <p className="mt-1 text-[11.5px] leading-relaxed text-slate-500">
-              Setelah ditambahkan, instansi, topik, lokasi, dan tanggal tetap terisi — kamu cukup
-              mengganti nama untuk narasumber berikutnya pada kegiatan yang sama.
+              Setelah ditambahkan ke daftar, seluruh kolom form otomatis dikosongkan lagi, jadi kamu
+              bisa langsung mengisi kegiatan berikutnya dari awal tanpa menghapus isian sebelumnya.
             </p>
           </div>
         </aside>

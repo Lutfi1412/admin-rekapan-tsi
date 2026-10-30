@@ -134,9 +134,14 @@ diurutkan kronologis berdasarkan tanggal mulai, pilihan jumlah baris per halaman
    filter mode pelaksanaan, badge mode, skeleton loading, dan empty state.
 3. **Form input banyak sekaligus** — isi satu kegiatan → **Tambah ke daftar** → muncul pertanyaan
    "mau input kegiatan lagi atau kirim sekarang?"; entri yang sudah masuk daftar tetap tersimpan dan
-   bisa dihapus satu per satu. Setelah ditambahkan, instansi/topik/lokasi/tanggal tetap terisi agar
-   tinggal mengganti nama untuk narasumber berikutnya pada kegiatan yang sama. Semua entri dikirim
+   bisa dihapus satu per satu. Setelah ditambahkan ke daftar, **seluruh kolom form dikosongkan total**
+   (nama, instansi, topik, tanggal, lokasi, mode) supaya kegiatan berikutnya diisi dari awal tanpa
+   perlu menghapus isian lama. Semua entri dikirim
    dalam satu request (`POST /create` menerima array) sehingga diproses paralel oleh worker API.
+   Pilihan **Durasi kegiatan** ada di form: **Sehari** (hanya satu kolom tanggal, tanggal selesai
+   otomatis sama dengan tanggal mulai) atau **Lebih dari sehari** (dua kolom tanggal mulai & selesai).
+   Saat mengedit data lama, pilihan ini menyesuaikan sendiri: satu tanggal → Sehari, beda tanggal →
+   Lebih dari sehari.
 4. **Update** — tombol pensil membuka form terisi data lama, lalu `PUT /update/:id`.
 5. **Hapus** — dialog konfirmasi berisi ringkasan data sebelum `DELETE /delete/:id`.
 6. **Logout** — menghapus token dari `localStorage` dan kembali ke halaman login.
