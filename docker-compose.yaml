@@ -1,0 +1,28 @@
+# Menjalankan panel admin sebagai container nginx.
+#
+#   docker compose up -d --build
+#   open http://localhost:8080
+#
+# Nilai VITE_* dibaca dari .env (atau environment shell) lalu diteruskan
+# sebagai build arg — Vite menanam nilainya saat proses build, jadi kalau
+# URL API berubah container harus di-build ulang.
+
+services:
+  admin-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_APP_NAME: ${VITE_APP_NAME:-Rekapan Narsum DIT TSI}
+    image: admin-rekapan-tsi:latest
+    container_name: admin-rekapan-tsi
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
